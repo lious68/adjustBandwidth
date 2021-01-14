@@ -30,7 +30,11 @@ class EipInterface(object):
         except exc.UCloudException as e:
             print(e)
         else:
-            return(resp['DataSets']['NetworkOutUsage'][0]['Value']) 
+            result = resp['DataSets']['NetworkOutUsage']
+            if len(result) < 1:
+                return None
+            else: 
+                return(result[0]['Value']) 
 
     def getEipBandwidth(self):  # 定义获取EIP信息方法，返回当前带宽大小。
         try:
@@ -101,45 +105,48 @@ def getAllEipId():  # 从所有信息里提取EIPid，并存入数组eipIdArray�
 def adjustBandwidth(eipid):  # 调整带宽主逻辑
     AutoEIP = EipInterface(eipid)  # 类封装给AutoEIP，并传入参数。
     utilization = AutoEIP.getBandwidthUsage()  # 带宽使用率，通过类的方法
-    curBandwidth = AutoEIP.getEipBandwidth()  # 当前带宽，通过类的方法
-    print("This EIP %s utilization is %f,and the bandwidth is %dM" % (eipid, utilization, curBandwidth))
+    if utilization != None:
+        curBandwidth = AutoEIP.getEipBandwidth()  # 当前带宽，通过类的方法
+        print("This EIP %s utilization is %f,and the bandwidth is %dM" % (eipid, utilization, curBandwidth))
 
 
-    try:
-        if adjust_method == 'static':
-            # 当带宽利用率超过80%，并且当前带宽还未到最高限制带宽，每次增加设置的步长带宽。
-            if utilization >= 80 and curBandwidth <= maxBandwidth:
-                newBandwidth = curBandwidth + stepBandwidth
-                AutoEIP.addBandwidth(newBandwidth)
-            # 当前带宽利用率低于10%，并且当前带宽还未到最低地位带宽，每次减少设置的步长带宽。
-            elif utilization <= 10 and curBandwidth > minBandwidth:
-                newBandwidth = curBandwidth - stepBandwidth
-                AutoEIP.reduceBandwidth(newBandwidth)
-            else:
-                print("Do nothing,-----------> The reason is maybe bandwidth  between  maximum and minimum, or It reaches its maximum or minmum.")
-        elif adjust_method == 'dynamic':
-            if percent >= 0.1 and percent <= 1:
-                if utilization >= 70 and curBandwidth <= maxBandwidth:
-                    newBandwidth = int(curBandwidth + curBandwidth * percent)
+        try:
+            if adjust_method == 'static':
+                # 当带宽利用率超过80%，并且当前带宽还未到最高限制带宽，每次增加设置的步长带宽。
+                if utilization >= 80 and curBandwidth <= maxBandwidth:
+                    newBandwidth = curBandwidth + stepBandwidth
                     AutoEIP.addBandwidth(newBandwidth)
                 # 当前带宽利用率低于10%，并且当前带宽还未到最低地位带宽，每次减少设置的步长带宽。
                 elif utilization <= 10 and curBandwidth > minBandwidth:
-                    newBandwidth = int(curBandwidth - curBandwidth * percent)
+                    newBandwidth = curBandwidth - stepBandwidth
                     AutoEIP.reduceBandwidth(newBandwidth)
                 else:
-                    print("Do nothing,This the max bandwidth or the min bandwidth ,please adjust")
+                    print("Do nothing,-----------> The reason is maybe bandwidth  between  maximum and minimum, or It reaches its maximum or minmum.")
+            elif adjust_method == 'dynamic':
+                if percent >= 0.1 and percent <= 1:
+                    if utilization >= 70 and curBandwidth <= maxBandwidth:
+                        newBandwidth = int(curBandwidth + curBandwidth * percent)
+                        AutoEIP.addBandwidth(newBandwidth)
+                    # 当前带宽利用率低于10%，并且当前带宽还未到最低地位带宽，每次减少设置的步长带宽。
+                    elif utilization <= 10 and curBandwidth > minBandwidth:
+                        newBandwidth = int(curBandwidth - curBandwidth * percent)
+                        AutoEIP.reduceBandwidth(newBandwidth)
+                    else:
+                        print("Do nothing,This the max bandwidth or the min bandwidth ,please adjust")
+                else:
+                    print("please input percent value between 0.1 and 1")
+            elif adjust_method == 'package':
+                if utilization >= 0.7 and curBandwidth <= maxBandwidth:
+                    AutoEIP.createBandwidthPackage()
+                    print("has createBandwidthPackage")
+                else:
+                    print("Do nothing")
             else:
-                print("please input percent value between 0.1 and 1")
-        elif adjust_method == 'package':
-            if utilization >= 0.7 and curBandwidth <= maxBandwidth:
-                AutoEIP.createBandwidthPackage()
-                print("has createBandwidthPackage")
-            else:
-                print("Do nothing")
-        else:
-            print("please choice adjust_method")
-    except Exception as e:
-        print(e)
+                print("please choice adjust_method")
+        except Exception as e:
+            print(e)
+    else:
+        print("has no utilization data, do nothing,cricle go on!")
 
 def main():
     client = Client({
