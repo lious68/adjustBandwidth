@@ -104,13 +104,12 @@ def getAllEipId():  # 从所有信息里提取EIPid，并存入数组eipIdArray�
 
 def adjustBandwidth(eipid):  # 调整带宽主逻辑
     AutoEIP = EipInterface(eipid)  # 类封装给AutoEIP，并传入参数。
-    utilization = AutoEIP.getBandwidthUsage()  # 带宽使用率，通过类的方法
-    if utilization != None:
-        curBandwidth = AutoEIP.getEipBandwidth()  # 当前带宽，通过类的方法
-        print("This EIP %s utilization is %f,and the bandwidth is %dM" % (eipid, utilization, curBandwidth))
+    try:
+        utilization = AutoEIP.getBandwidthUsage()  # 带宽使用率，通过类的方法
+        if utilization != None:
+            curBandwidth = AutoEIP.getEipBandwidth()  # 当前带宽，通过类的方法
+            print("This EIP %s utilization is %f,and the bandwidth is %dM" % (eipid, utilization, curBandwidth))
 
-
-        try:
             if adjust_method == 'static':
                 # 当带宽利用率超过80%，并且当前带宽还未到最高限制带宽，每次增加设置的步长带宽。
                 if utilization >= 80 and curBandwidth <= maxBandwidth:
@@ -143,10 +142,12 @@ def adjustBandwidth(eipid):  # 调整带宽主逻辑
                     print("Do nothing")
             else:
                 print("please choice adjust_method")
-        except Exception as e:
-            print(e)
-    else:
-        print("has no utilization data, do nothing,cricle go on!")
+
+        else:
+            print("has no utilization data, do nothing,cricle go on!")
+
+    except Exception as e:
+        print(e)
 
 def main():
     client = Client({
@@ -169,4 +170,5 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+     main()
+    #print(EipInterface.getEipBandwidth('eip-xdvctmxb'))
